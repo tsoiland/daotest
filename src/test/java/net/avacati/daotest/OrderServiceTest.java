@@ -1,5 +1,8 @@
 package net.avacati.daotest;
 
+import net.avacati.daotest.Persistence.OrderDbo;
+import net.avacati.lib.aggregaterepository.InMemoryDataStore;
+import net.avacati.lib.aggregaterepository.UnitOfWork;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -16,8 +19,8 @@ public class OrderServiceTest {
     }
 
     private OrderService createSut() {
-        InnerRepo innerRepo = new InnerRepo();
-        UnitOfWork unitOfWork = new UnitOfWork(innerRepo);
+        InMemoryDataStore<OrderDbo> innerRepo = new InMemoryDataStore<>();
+        UnitOfWork<Order, OrderDbo> unitOfWork = new UnitOfWork<>(innerRepo);
         return new OrderService(new OrderRepository(innerRepo, unitOfWork), new OrderValidator(), unitOfWork);
     }
 

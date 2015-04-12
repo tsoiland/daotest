@@ -1,7 +1,7 @@
 package net.avacati.daotest;
 
 import net.avacati.daotest.Persistence.OrderDbo;
-import net.avacati.daotest.Persistence.OrderLogDbo;
+import net.avacati.lib.aggregaterepository.Aggregate;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class Order {
+public class Order implements Aggregate<OrderDbo> {
     protected UUID id;
     protected String orderData;
     protected OrderStatus status;
@@ -68,7 +68,7 @@ public class Order {
         dbo.status = this.status;
         dbo.log = this.log
                 .stream()
-                .map(l -> l.getDbo())
+                .map(l -> l.getDbo(this.id))
                 .collect(Collectors.toList());
         return dbo;
     }
@@ -79,7 +79,7 @@ public class Order {
         this.status = dbo.status;
         this.log = dbo.log
                 .stream()
-                .map(logDbo -> new OrderLog(logDbo))
+                .map(OrderLog::new)
                 .collect(Collectors.toList());
     }
 }

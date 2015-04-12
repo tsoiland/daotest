@@ -1,10 +1,10 @@
 package net.avacati.daotest.Persistence;
 
-import net.avacati.daotest.OrderLog;
-
-import java.util.Date;
+import java.util.UUID;
 
 public class OrderLogDbo {
-    public Date date;
+    public UUID id;
+    public UUID orderId;
+    public String date;
     public String message;
 }

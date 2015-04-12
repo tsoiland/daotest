@@ -1,5 +1,7 @@
 package net.avacati.daotest;
 
+import net.avacati.lib.aggregaterepository.UnitOfWork;
+
 import java.util.UUID;
 
 public class OrderService {
