@@ -1,9 +1,16 @@
-package net.avacati.lib.aggregaterepository;
+package net.avacati.daotest;
+
+import net.avacati.lib.aggregaterepository.DataStore;
+import net.avacati.lib.aggregaterepository.UnitOfWork;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * In memory implementation of {@link DataStore} for {@link UnitOfWork}.
+ * Used for testing only.
+ */
 public class InMemoryDataStore<D> implements DataStore<D> {
     private Map<UUID, D> dboList;
 

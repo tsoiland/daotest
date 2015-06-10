@@ -3,38 +3,58 @@ package net.avacati.lib.aggregaterepository;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UnitOfWork<E extends Aggregate<D>, D> {
+/**
+ * Maintains a list of objects affected by a business transaction
+ * and coordinates the writing out of changes. --Martin Fowler
+ *
+ * @param <A> the entity type we're storing
+ * @param <D> the corresponding dbo type
+ */
+public class UnitOfWork<A extends Repository.AggregateRoot<D>, D> {
     private DataStore<D> dataStore;
-    private List<E> insertsDirty;
-    private List<E> maybeDirty;
+    private List<A> inserts;
+    private List<A> update;
 
     public UnitOfWork(DataStore<D> dataStore) {
         this.dataStore = dataStore;
-        this.insertsDirty = new ArrayList<>();
-        this.maybeDirty = new ArrayList<>();
+        this.inserts = new ArrayList<>();
+        this.update = new ArrayList<>();
     }
 
-    public void insert(E entity) {
-        this.insertsDirty.add(entity);
+    /**
+     * Flag a new object as needing to be inserted.
+     */
+    public void insert(A entity) {
+        this.inserts.add(entity);
     }
 
-    public void maybeUpdate(E entity) {
-        this.maybeDirty.add(entity);
+    /**
+     * Flag an existing object as needing an update.
+     */
+    public void update(A entity) {
+        this.update.add(entity);
     }
 
+    /**
+     * Perform inserts and updates using the underlying {@link DataStore}.
+     */
     public void save() {
-        // Perform all inserts.
-        this.insertsDirty.forEach(entity -> this.dataStore.insert(entity.getId(), entity.getDbo()));
-        this.insertsDirty.clear();
+        // Perform inserts.
+        this.inserts.forEach(entity -> this.dataStore.insert(entity.getId(), entity.getDbo()));
+        this.inserts.clear();
 
-        // Perform update on all entities that might have been changed.
-        this.maybeDirty.forEach(
+        // Perform updates
+        this.update.forEach(
                 entity -> {
+                    // Fetch old dbo. This class should keep a list of snapshots from when
+                    // the original dbo was fetched from datasource, but this was quicker to implement.
                     D oldDbo = this.dataStore.get(entity.getId());
-                    this.dataStore.update(entity.getId(), entity.getDbo(), oldDbo);
-            });
-        this.maybeDirty.clear();
-    }
 
+                    // Call update with the new and old entity so data store
+                    // can compare individual fields if it needs to.
+                    this.dataStore.update(entity.getId(), entity.getDbo(), oldDbo);
+                });
+        this.update.clear();
+    }
 }
 

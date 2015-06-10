@@ -1,35 +1,55 @@
 package net.avacati.daotest;
 
-import net.avacati.daotest.Persistence.OrderDbo;
-import net.avacati.lib.aggregaterepository.Aggregate;
+import net.avacati.lib.aggregaterepository.Repository;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class Order implements Aggregate<OrderDbo> {
-    protected UUID id;
-    protected String orderData;
-    protected OrderStatus status;
-    protected List<OrderLog> log;
-    protected String[] validationErrors;
+class Order implements Repository.AggregateRoot<Order.OrderDbo> {
+    private UUID id;
+    private String orderData;
+    private OrderStatus status;
+    public enum OrderStatus { InProgress, Error, Cancelled }
+    private List<OrderLog> log = new ArrayList<>();
+    private Collection<String> validationErrors = new ArrayList<>();
 
-    public Order(RegisterOrderDto dto, String[] errors) {
-        this.log = new ArrayList<>();
+    Order(OrderService.RegisterOrderDto dto) {
+        // Assign identity
         this.id = UUID.randomUUID();
+
+        // Set values from dto.
         this.orderData = dto.orderData;
 
-        if(errors.length > 0){
+        // Validate
+        if(this.orderData.contains("13")){
+            // Business rule: Superstitious product owner
+            this.validationErrors.add("Order data contains unlucky number!");
+        }
+
+        if(this.id.toString().contains(Integer.toString(6 * 100) + (6 * 10) + 6)) {
+            /*
+             * Business rule: Product owner misread his bible. The actual quote goes the other way around:
+             *
+             * Revelations 13:18
+             *  17 and he provides that no one will be able to buy or to sell,
+             * except the one who has the mark, either the name of the beast or
+             * the number of his name.
+             *  18 Here is wisdom. Let him who has understanding
+             * calculate the number of the beast, for the number is that of a man;
+             * and his number is six hundred and sixty-six.
+             */
+            this.validationErrors.add("Order has mark of the beast!");
+        }
+
+        // Initialize status based on validation
+        if(this.validationErrors.size() > 0){
             this.updateStatus(OrderStatus.Error);
-            this.validationErrors = errors;
         } else {
             this.updateStatus(OrderStatus.InProgress);
         }
     }
 
-    public void cancel() {
+    void cancel() {
         this.updateStatus(OrderStatus.Cancelled);
     }
 
@@ -39,28 +59,34 @@ public class Order implements Aggregate<OrderDbo> {
     }
 
     private void addLog(String message) {
-        this.log.add(new OrderLog(new Date(), message));
+        this.log.add(new OrderLog(message));
     }
 
+    @Override
     public UUID getId() {
         return this.id;
     }
 
-    public String getOrderData() {
+    String getOrderData() {
         return orderData;
     }
 
-    public OrderStatus getStatus() {
+    OrderStatus getStatus() {
         return status;
     }
 
-    public Iterable<OrderLog> getLog() {
-        return this.log;
+    Collection<String> getLog() {
+        return
+            this.log
+                .stream()
+                .map(OrderLog::render)
+                .collect(Collectors.toList());
     }
 
     /*
      * Persistence methods
      */
+    @Override
     public OrderDbo getDbo() {
         OrderDbo dbo = new OrderDbo();
         dbo.id = this.id;
@@ -73,7 +99,7 @@ public class Order implements Aggregate<OrderDbo> {
         return dbo;
     }
 
-    public Order(OrderDbo dbo) {
+    Order(OrderDbo dbo) {
         this.id = dbo.id;
         this.orderData = dbo.orderData;
         this.status = dbo.status;
@@ -81,6 +107,13 @@ public class Order implements Aggregate<OrderDbo> {
                 .stream()
                 .map(OrderLog::new)
                 .collect(Collectors.toList());
+    }
+
+    static class OrderDbo {
+        public UUID id;
+        public String orderData;
+        public OrderStatus status;
+        public List<OrderLog.OrderLogDbo> log;
     }
 }
 
